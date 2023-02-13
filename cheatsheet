@@ -1,0 +1,237 @@
+  <dependency>
+                <groupId>org.openjdk.jmh</groupId>
+                <artifactId>jmh-core</artifactId>
+                <version>${jmh.version}</version>
+                <scope>test</scope>
+
+            </dependency>
+            <dependency>
+                <groupId>org.openjdk.jmh</groupId>
+                <artifactId>jmh-generator-annprocess</artifactId>
+                <version>${jmh.version}</version>
+                <scope>test</scope>
+
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-configuration-processor</artifactId>
+                <optional>true</optional>
+            </dependency>
+            
+            
+            
+            --------------------------plugins
+              <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.8.1</version>
+                    <configuration>
+                        <source>17</source>
+                        <target>17</target>
+                        <annotationProcessorPaths>
+                            
+                            <path>
+                                <groupId>org.openjdk.jmh</groupId>
+                                <artifactId>jmh-generator-annprocess</artifactId>
+                                <version>${jmh.version}</version>
+                            </path>
+                        </annotationProcessorPaths>
+                    </configuration>
+                </plugin>
+                
+                
+                --------------connection pool
+                # UCP settings
+spring:
+  datasource:
+   type: oracle.oracleucp.jdbc.UCPDataSource
+   oracleucp:
+     connection-factory-class-name: oracle.jdbc.pool.OracleDataSource
+     sql-for-validate-connection: select * from dual
+     connection-pool-name: pUcpPoolBooks
+     initial-pool-size: 5
+     min-pool-size: 5
+     max-pool-size: 10.
+
+---
+   #hikari
+spring:
+  datasource:
+    hikari:
+     minimumIdle: 400
+     maximumPoolSize: 450
+     idleTimeout: 30000
+     maxLifetime: 2000000
+     connectionTimeout: 30000
+     poolName: HikariPoolName
+     
+     
+     ------------
+     
+     
+        <dependency>
+                <groupId>com.oracle.database.jdbc</groupId>
+                <artifactId>ojdbc8</artifactId>
+                <scope>runtime</scope>
+            </dependency>
+
+
+            <dependency>
+                <groupId>com.oracle.database.ha</groupId>
+                <artifactId>ons</artifactId>
+            </dependency>
+            <dependency>
+                <groupId>com.oracle.database.jdbc</groupId>
+                <artifactId>ucp</artifactId>
+            </dependency>
+                
+  ------
+  
+  
+  --
+spring:
+  main:
+   allow-bean-definition-overriding: true
+---
+spring:
+  datasource:
+    #url: jdbc:postgresql://localhost:5432/post-employee-service
+    url: jdbc:oracle:thin:@//172.15.0.121:1521/orcl
+    username: koohi
+    password: koohi
+    driverClassName: oracle.jdbc.OracleDriver
+    hikari:
+      minimumIdle: 5
+      maximumPoolSize: 10
+      poolName: HikariPoolName
+
+  jpa:
+    #database-platform: org.hibernate.dialect.Oracle12cDialect
+    #database: POSTGRESQL
+    hibernate:
+      dialect: org.hibernate.dialect.Oracle12cDialect
+      ddl-auto: update
+
+---
+
+
+
+
+import com.kurdestanbootcamp.postemployeeservice.Application;
+import com.kurdestanbootcamp.postemployeeservice.post_employee.PostEmployee;
+import com.kurdestanbootcamp.postemployeeservice.post_employee.PostEmployeeRepository;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.openjdk.jmh.annotations.*;
+import org.openjdk.jmh.infra.Blackhole;
+import org.openjdk.jmh.profile.GCProfiler;
+import org.openjdk.jmh.runner.Runner;
+import org.openjdk.jmh.runner.options.Options;
+import org.openjdk.jmh.runner.options.OptionsBuilder;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.test.context.junit4.SpringRunner;
+
+import java.util.Random;
+import java.util.concurrent.TimeUnit;
+
+@SpringBootTest(classes = Application.class, webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT)
+@RunWith(SpringRunner.class)
+
+@State(Scope.Benchmark)
+@BenchmarkMode(Mode.AverageTime)
+@OutputTimeUnit(TimeUnit.MILLISECONDS)
+public class DemoApplicationTests {
+    private static PostEmployeeRepository repository;
+
+    @Autowired
+    public void setRepository(PostEmployeeRepository repository) {
+        DemoApplicationTests.repository = repository;
+    }
+
+    @Test
+    public void runBenchmarks() throws Exception {
+/*        Options opt = new OptionsBuilder()
+                .include(DemoApplicationTests.class.getSimpleName())
+//            .warmupIterations(10)
+//            .warmupTime(TimeValue.seconds(1))
+                .measurementIterations(1)
+//            .measurementTime(TimeValue.seconds(10))
+                .forks(0) //0 makes debugging possible
+                .shouldFailOnError(true)
+                .addProfiler(GCProfiler.class)
+                .build();
+
+        new Runner(opt).run();*/
+        Options opts = new OptionsBuilder()
+                // set the class name regex for benchmarks to search for to the current class
+                .include("\\." + this.getClass().getSimpleName() + "\\.")
+               //.warmupIterations(3)
+              // .measurementIterations(3)
+                // do not use forking or the benchmark methods will not see references stored within its class
+               //.forks(0)
+                // do not use multiple threads
+            // .threads(1)
+                .shouldDoGC(true)
+                .shouldFailOnError(true)
+                .jvmArgs("-server")
+                .build();
+
+        new Runner(opts).run();
+    }
+
+
+
+
+/*    @Benchmark
+    @Fork(0)
+    @Measurement(iterations = 100, time = 1)
+    @Warmup(iterations = 1, time = 1)
+    public void insert( Blackhole blackhole) {
+PostEmployee postEmployee=new PostEmployee();
+postEmployee.setPostId(new Random().nextLong());
+postEmployee.setEmployeeId(new Random().nextLong());
+repository.save(postEmployee);
+
+
+    }*/
+
+    @Benchmark
+    @Fork(0)
+    @Measurement(iterations = 10, time = 1)
+    @Warmup(iterations = 1, time = 1)
+    public void findpage( Parameters parameters,Blackhole blackhole) {
+        Random rand = new Random();
+        int x = rand.nextInt(100);
+       blackhole.consume(repository.findAll(PageRequest.of(x,50)));
+
+    }
+
+
+
+
+    @Benchmark
+    @Fork(0)
+    @Measurement(iterations = 10, time = 1)
+    @Warmup(iterations = 1, time = 1)
+    public void findbyId( Parameters parameters,Blackhole blackhole) {
+        Random rand = new Random();
+        long x = rand.nextLong(100);
+       blackhole.consume(repository.findAllByEmployeeId(x));
+
+    }
+
+
+
+
+
+
+    @State(value = Scope.Benchmark)
+    public static class Parameters {
+
+        @Param({"10", "20","100"})
+        String batchSize;
+    }
+
+}
